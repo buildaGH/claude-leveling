@@ -198,4 +198,11 @@ export interface DungeonState {
 
   /** Running total of XP earned inside this dungeon. */
   totalDungeonXp: number;
+
+  /**
+   * Tracks the last time each XP event type was accepted by the event bus.
+   * Used to enforce per-type cooldown windows across hook invocations.
+   * Key: XPEventType string. Value: ISO timestamp of last accepted event.
+   */
+  rateLimitState: Record<string, ISODateString>;
 }

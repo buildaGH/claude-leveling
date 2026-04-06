@@ -48,5 +48,6 @@ export function createDungeon(projectName: string): DungeonState {
     sessions: [],
     quests: [],
     totalDungeonXp: 0,
+    rateLimitState: {},
   };
 }
