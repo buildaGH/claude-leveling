@@ -1,0 +1,32 @@
+{
+  "name": "claude-leveling",
+  "version": "0.1.0",
+  "description": "Solo Leveling-style RPG gamification system for Claude Code",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "claude-level": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "claude-code",
+    "gamification",
+    "rpg",
+    "solo-leveling",
+    "developer-tools"
+  ],
+  "author": "BuildGH",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "typescript": "^6.0.2"
+  }
+}
