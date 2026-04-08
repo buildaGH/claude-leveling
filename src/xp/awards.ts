@@ -89,13 +89,25 @@ export const EVENT_AWARDS: Record<XPEventType, EventAward> = {
     baseXp: 25,
     statDeltas: { endurance: 3 },
     multiplier(metadata) {
-      // Longer sessions earn a bonus.
+      let mult = 1.0;
+
+      // Duration bonus
       const minutes = metadata["sessionMinutes"];
-      if (typeof minutes !== "number") return 1.0;
-      if (minutes >= 120) return 2.0;
-      if (minutes >= 60)  return 1.5;
-      if (minutes >= 30)  return 1.2;
-      return 1.0;
+      if (typeof minutes === "number") {
+        if (minutes >= 120) mult *= 2.0;
+        else if (minutes >= 60)  mult *= 1.5;
+        else if (minutes >= 30)  mult *= 1.2;
+      }
+
+      // Streak bonus — consecutive active days compound the reward
+      const streak = metadata["streak"];
+      if (typeof streak === "number") {
+        if (streak >= 14) mult *= 1.3;
+        else if (streak >= 7)  mult *= 1.2;
+        else if (streak >= 3)  mult *= 1.1;
+      }
+
+      return mult;
     },
   },
 

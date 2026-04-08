@@ -12,7 +12,8 @@ import { openDungeonStorage, openPlayerStorage } from "../storage/index.js";
 import { EventBus } from "../events/index.js";
 import { XPEngine } from "../xp/index.js";
 import { endSession } from "./session.js";
-import { renderRankUp, renderSessionEnd } from "./notify.js";
+import { renderRankUp, renderSessionEnd, renderStreakMilestone } from "./notify.js";
+import { updateStreak } from "../quests/index.js";
 import { print, readStdin } from "./io.js";
 import type { StopPayload } from "./types.js";
 
@@ -28,11 +29,17 @@ async function main(): Promise<void> {
   try {
     const endResult = endSession(dungeonStorage, raw.session_id, raw.stop_hook_active);
 
+    // Update streak before awarding session-end XP (streak feeds the multiplier)
+    const streakResult = updateStreak(playerStorage);
+
     // Award session-end XP regardless of outcome (even abandoned sessions earn Endurance)
     const sessionEndEvent = {
       type: "session-end" as const,
       occurredAt: new Date().toISOString(),
-      metadata: { sessionMinutes: endResult.sessionMinutes },
+      metadata: {
+        sessionMinutes: endResult.sessionMinutes,
+        streak: streakResult.streak,
+      },
     };
 
     const bus = new EventBus(dungeonStorage);
@@ -43,6 +50,9 @@ async function main(): Promise<void> {
       const result = engine.handle(sessionEndEvent);
 
       print(renderSessionEnd(endResult, result.updatedPlayer));
+      if (streakResult.isNewDay && streakResult.streak >= 3) {
+        print(renderStreakMilestone(streakResult.streak));
+      }
 
       if (result.rankUp !== null) {
         print(renderRankUp(result.rankUp.from, result.rankUp.to, result.updatedPlayer));

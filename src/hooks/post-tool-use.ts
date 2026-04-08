@@ -15,12 +15,16 @@ import { parsePostToolUse } from "./parser.js";
 import { getOrStartSession, recordSessionXp } from "./session.js";
 import { isCapped } from "./caps.js";
 import {
+  renderBonusQuestSpawned,
   renderCapReached,
   renderClassChange,
+  renderQuestComplete,
+  renderQuestGenerated,
   renderRankUp,
   renderSessionStart,
   renderXpLine,
 } from "./notify.js";
+import { maybeSpawnBonusQuest, refreshQuests, updateQuestProgress } from "../quests/index.js";
 import { print, readStdin } from "./io.js";
 import type { PostToolUsePayload } from "./types.js";
 
@@ -43,9 +47,19 @@ async function main(): Promise<void> {
       projectName,
     );
 
+    // Refresh quests (generate today's/this week's if not yet done, expire stale ones)
+    const { generated } = refreshQuests(dungeonStorage, playerStorage);
+    if (generated.length > 0) {
+      print(renderQuestGenerated(generated.map((q) => q.title)));
+    }
+
     if (isNewSession) {
       const player = playerStorage.readOrCreate(projectName);
       print(renderSessionStart(player.name, projectName));
+
+      // Random bonus quest on new session (10% chance)
+      const bonus = maybeSpawnBonusQuest(dungeonStorage, player.rank);
+      if (bonus !== null) print(renderBonusQuestSpawned(bonus.title));
     }
 
     // Session XP cap check (quality checkpoints bypass)
@@ -65,6 +79,28 @@ async function main(): Promise<void> {
     const result = engine.handle(event);
 
     recordSessionXp(dungeonStorage, raw.session_id, result.xpAwarded);
+
+    // Update quest progress
+    const { completed } = updateQuestProgress(dungeonStorage, event);
+    for (const q of completed) {
+      print(renderQuestComplete(q.title, q.xpReward));
+      // Award quest XP
+      const questEvent = {
+        type: "git-commit" as const, // proxy event to carry XP — use git-commit base
+        occurredAt: new Date().toISOString(),
+        metadata: { questReward: q.xpReward, questId: q.questId },
+      };
+      // Directly add XP without going through the bus (quest rewards bypass rate limits)
+      const questPlayer = playerStorage.read();
+      if (questPlayer !== null) {
+        playerStorage.write({
+          ...questPlayer,
+          totalXp: questPlayer.totalXp + q.xpReward,
+          rankXp: questPlayer.rankXp + q.xpReward,
+        });
+      }
+      void questEvent; // questEvent computed but XP applied directly above
+    }
 
     // Regular XP line
     print(

@@ -7,7 +7,7 @@
 import { randomUUID } from "node:crypto";
 import type { DungeonState, HunterStats, PlayerState } from "./schema.js";
 
-export const CURRENT_SCHEMA_VERSION = "1.0.0";
+export const CURRENT_SCHEMA_VERSION = "1.1.0";
 
 export function emptyStats(): HunterStats {
   return {
@@ -36,6 +36,9 @@ export function createPlayer(name: string): PlayerState {
     activeTitle: null,
     createdAt: now,
     lastActiveAt: now,
+    streak: 0,
+    longestStreak: 0,
+    lastActiveDateStr: "",
   };
 }
 

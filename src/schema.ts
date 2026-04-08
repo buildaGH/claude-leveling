@@ -125,6 +125,22 @@ export interface PlayerState {
 
   /** ISO timestamp of the most recent XP event. */
   lastActiveAt: ISODateString;
+
+  // ---------------------------------------------------------------------------
+  // Streak
+  // ---------------------------------------------------------------------------
+
+  /** Number of consecutive active days (resets to 1 on a missed day). */
+  streak: number;
+
+  /** All-time longest streak — never decreases. */
+  longestStreak: number;
+
+  /**
+   * The last calendar date (YYYY-MM-DD) on which the Hunter was active.
+   * Used to determine if the streak should increment, reset, or hold.
+   */
+  lastActiveDateStr: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -158,14 +174,17 @@ export type QuestArchetype =
   | "gate-siege"
   | "bonus-gate";
 
+export type QuestFrequency = "daily" | "weekly";
+
 export interface LocalQuest {
   questId: string;
   archetype: QuestArchetype;
+  frequency: QuestFrequency;
   title: string;
   description: string;
   xpReward: number;
   status: QuestStatus;
-  /** ISO date (YYYY-MM-DD) this quest is active for. */
+  /** ISO date (YYYY-MM-DD) this quest is active for (daily) or week-start (weekly). */
   activeDate: string;
   /** ISO timestamp when the quest expires. */
   expiresAt: ISODateString;
@@ -175,6 +194,11 @@ export interface LocalQuest {
   progress: number;
   /** The target value to consider the quest complete. */
   goal: number;
+  /**
+   * Archetype-specific tracking state (e.g. speed-clear timer start).
+   * Not displayed — used internally by the quest tracker.
+   */
+  metadata: Record<string, unknown>;
 }
 
 export interface DungeonState {

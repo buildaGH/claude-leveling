@@ -137,3 +137,38 @@ export function renderSessionEnd(result: SessionEndResult, player: PlayerState):
 export function renderCapReached(rank: Rank): string {
   return `  ◈  Session limit reached for Rank ${rank}. Quality work still earns XP.`;
 }
+
+// ---------------------------------------------------------------------------
+// Quest events
+// ---------------------------------------------------------------------------
+
+export function renderQuestComplete(questTitle: string, xpReward: number): string {
+  return box([
+    "[ QUEST COMPLETE ]",
+    "",
+    `  ${questTitle}`,
+    `  +${xpReward} XP`,
+    "",
+    '"The System records your achievement."',
+  ]);
+}
+
+export function renderQuestGenerated(titles: string[]): string {
+  const lines = ["[ NEW QUESTS AVAILABLE ]", ""];
+  for (const t of titles) lines.push(`  ▸ ${t}`);
+  return box(lines);
+}
+
+export function renderBonusQuestSpawned(title: string): string {
+  return box([
+    "[ BONUS GATE DETECTED ]",
+    "",
+    `  ${title}`,
+    "",
+    "Complete it before the window closes.",
+  ]);
+}
+
+export function renderStreakMilestone(streak: number): string {
+  return `  ◈  ${streak}-day streak! Session XP bonus active.`;
+}

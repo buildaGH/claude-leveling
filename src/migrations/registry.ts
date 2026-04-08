@@ -1,28 +1,47 @@
 /**
  * registry.ts — Registered migrations for PlayerState and DungeonState.
  *
- * Both registries are empty at v1.0.0 — this is the initial schema.
- * When a breaking change is made to either interface:
+ * When making a breaking change:
+ *   1. Bump CURRENT_SCHEMA_VERSION in defaults.ts
+ *   2. Add a Migration entry below
+ *   3. Add a test in __tests__/registry.test.ts
  *
- *   1. Bump CURRENT_SCHEMA_VERSION in defaults.ts (e.g. "1.0.0" → "1.1.0")
- *   2. Add a Migration to the appropriate array below
- *   3. Add a test in __tests__/registry.test.ts covering the transform
- *
- * Example (adding classSignals to a hypothetical pre-1.0.0 PlayerState):
- *
- *   {
- *     fromVersion: "0.9.0",
- *     toVersion:   "1.0.0",
- *     up: (state) => ({ ...state, classSignals: {} }),
- *   }
+ * Never edit or remove existing migrations.
  */
 
-import type { Migration } from "./types.js";
+import type { Migration, RawState } from "./types.js";
 
 export const PLAYER_MIGRATIONS: Migration[] = [
-  // No migrations yet — 1.0.0 is the initial schema.
+  {
+    // Phase 3 — adds streak tracking fields
+    fromVersion: "1.0.0",
+    toVersion:   "1.1.0",
+    up: (state: RawState): RawState => ({
+      ...state,
+      schemaVersion:    "1.1.0",
+      streak:           0,
+      longestStreak:    0,
+      lastActiveDateStr: "",
+    }),
+  },
 ];
 
 export const DUNGEON_MIGRATIONS: Migration[] = [
-  // No migrations yet — 1.0.0 is the initial schema.
+  {
+    // Phase 3 — adds frequency and metadata fields to existing LocalQuest entries
+    fromVersion: "1.0.0",
+    toVersion:   "1.1.0",
+    up: (state: RawState): RawState => {
+      const quests = Array.isArray(state["quests"]) ? state["quests"] : [];
+      return {
+        ...state,
+        schemaVersion: "1.1.0",
+        quests: quests.map((q: RawState) => ({
+          frequency: "daily",
+          metadata:  {},
+          ...q,
+        })),
+      };
+    },
+  },
 ];
