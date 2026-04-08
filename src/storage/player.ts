@@ -9,6 +9,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { PlayerState } from "../schema.js";
 import { CURRENT_SCHEMA_VERSION, createPlayer } from "../defaults.js";
+import { needsMigration, PLAYER_MIGRATIONS, runMigrations } from "../migrations/index.js";
 import { openDb, readState, writeState } from "./db.js";
 
 const PLAYER_DB_PATH = join(homedir(), ".claude-level", "player.db");
@@ -26,7 +27,13 @@ export function openPlayerStorage(dbPath: string = PLAYER_DB_PATH): PlayerStorag
 
   return {
     read(): PlayerState | null {
-      return readState<PlayerState>(db, STATE_KEY);
+      const raw = readState<Record<string, unknown>>(db, STATE_KEY);
+      if (raw === null) return null;
+      if (!needsMigration(raw, CURRENT_SCHEMA_VERSION)) return raw as unknown as PlayerState;
+
+      const migrated = runMigrations(raw, PLAYER_MIGRATIONS, CURRENT_SCHEMA_VERSION) as unknown as PlayerState;
+      writeState(db, STATE_KEY, migrated);
+      return migrated;
     },
 
     write(state: PlayerState): void {
@@ -34,7 +41,7 @@ export function openPlayerStorage(dbPath: string = PLAYER_DB_PATH): PlayerStorag
     },
 
     readOrCreate(name: string): PlayerState {
-      const existing = readState<PlayerState>(db, STATE_KEY);
+      const existing = this.read();
       if (existing !== null) return existing;
 
       const fresh = createPlayer(name);

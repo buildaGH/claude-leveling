@@ -8,6 +8,7 @@
 import { join } from "node:path";
 import type { DungeonState } from "../schema.js";
 import { CURRENT_SCHEMA_VERSION, createDungeon } from "../defaults.js";
+import { needsMigration, DUNGEON_MIGRATIONS, runMigrations } from "../migrations/index.js";
 import { openDb, readState, writeState } from "./db.js";
 
 const DUNGEON_DB_RELATIVE = join(".claude-level", "dungeon.db");
@@ -29,7 +30,13 @@ export function openDungeonStorage(projectRoot: string = process.cwd()): Dungeon
 
   return {
     read(): DungeonState | null {
-      return readState<DungeonState>(db, STATE_KEY);
+      const raw = readState<Record<string, unknown>>(db, STATE_KEY);
+      if (raw === null) return null;
+      if (!needsMigration(raw, CURRENT_SCHEMA_VERSION)) return raw as unknown as DungeonState;
+
+      const migrated = runMigrations(raw, DUNGEON_MIGRATIONS, CURRENT_SCHEMA_VERSION) as unknown as DungeonState;
+      writeState(db, STATE_KEY, migrated);
+      return migrated;
     },
 
     write(state: DungeonState): void {
@@ -37,7 +44,7 @@ export function openDungeonStorage(projectRoot: string = process.cwd()): Dungeon
     },
 
     readOrCreate(projectName: string): DungeonState {
-      const existing = readState<DungeonState>(db, STATE_KEY);
+      const existing = this.read();
       if (existing !== null) return existing;
 
       const fresh = createDungeon(projectName);
