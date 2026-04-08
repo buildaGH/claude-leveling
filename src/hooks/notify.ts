@@ -172,3 +172,27 @@ export function renderBonusQuestSpawned(title: string): string {
 export function renderStreakMilestone(streak: number): string {
   return `  ◈  ${streak}-day streak! Session XP bonus active.`;
 }
+
+// ---------------------------------------------------------------------------
+// Titles & Shadow Army
+// ---------------------------------------------------------------------------
+
+export function renderTitleUnlocked(titleName: string): string {
+  return box([
+    "[ TITLE UNLOCKED ]",
+    "",
+    `  「${titleName}」`,
+    "",
+    '"The System has granted you a name."',
+  ]);
+}
+
+export function renderShadowSummoned(shadowName: string, flavour: string): string {
+  return box([
+    "[ SHADOW SUMMONED ]",
+    "",
+    `  Shadow «${shadowName}» has risen.`,
+    "",
+    flavour,
+  ]);
+}

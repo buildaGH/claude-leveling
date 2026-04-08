@@ -73,6 +73,37 @@ export interface Title {
 }
 
 // ---------------------------------------------------------------------------
+// Achievements
+// ---------------------------------------------------------------------------
+
+export interface AchievementCounters {
+  /** Number of new files created via the Write tool. */
+  filesCreated: number;
+  /** test-pass events that followed a test-fail within 30 minutes. */
+  bugsFixed: number;
+  /**
+   * Sessions that had at least one commit or build-pass AND at least one
+   * test-pass, with zero test-fail events — a "clean feature" session.
+   */
+  cleanSessions: number;
+}
+
+// ---------------------------------------------------------------------------
+// Shadow Army
+// ---------------------------------------------------------------------------
+
+export interface ShadowSoldier {
+  /** Display name, e.g. "TypeScript", "Python", "Shell". */
+  name: string;
+  /** The classSignal key that triggered this summon. */
+  signalKey: string;
+  /** ISO timestamp when this shadow was summoned. */
+  addedAt: ISODateString;
+  /** The signal count at the time of summon. */
+  editCount: number;
+}
+
+// ---------------------------------------------------------------------------
 // Global Hunter (persisted at ~/.claude-level/player.json)
 // ---------------------------------------------------------------------------
 
@@ -119,6 +150,23 @@ export interface PlayerState {
 
   /** The title currently displayed on the Hunter card. */
   activeTitle: string | null;
+
+  // ---------------------------------------------------------------------------
+  // Achievements
+  // ---------------------------------------------------------------------------
+
+  /** Counters used to evaluate title and achievement unlock conditions. */
+  achievements: AchievementCounters;
+
+  // ---------------------------------------------------------------------------
+  // Shadow Army
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Technologies and patterns the Hunter has "mastered".
+   * Each shadow is summoned the first time a class signal crosses its threshold.
+   */
+  shadowArmy: ShadowSoldier[];
 
   /** ISO timestamp of when this player was created. */
   createdAt: ISODateString;

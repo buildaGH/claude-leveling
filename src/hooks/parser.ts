@@ -130,7 +130,8 @@ function parseWrite(payload: PostToolUsePayload): XPEvent {
   return {
     type: "file-edit",
     occurredAt: new Date().toISOString(),
-    metadata: { filePath, linesAdded: countLines(content) },
+    // created:true distinguishes new-file writes from edits for achievement tracking
+    metadata: { filePath, linesAdded: countLines(content), created: true },
   };
 }
 

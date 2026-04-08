@@ -22,9 +22,13 @@ import {
   renderQuestGenerated,
   renderRankUp,
   renderSessionStart,
+  renderShadowSummoned,
+  renderTitleUnlocked,
   renderXpLine,
 } from "./notify.js";
 import { maybeSpawnBonusQuest, refreshQuests, updateQuestProgress } from "../quests/index.js";
+import { getNewTitles, applyNewTitles, updateAchievements } from "../titles/index.js";
+import { getNewShadows, applyNewShadows } from "../shadows/index.js";
 import { print, readStdin } from "./io.js";
 import type { PostToolUsePayload } from "./types.js";
 
@@ -80,17 +84,40 @@ async function main(): Promise<void> {
 
     recordSessionXp(dungeonStorage, raw.session_id, result.xpAwarded);
 
+    // Update achievement counters based on this event
+    const dungeon = dungeonStorage.readOrCreate(projectName);
+    const updatedAchievements = updateAchievements(result.updatedPlayer, event, dungeon);
+    let updatedPlayer = result.updatedPlayer;
+    if (updatedAchievements !== result.updatedPlayer.achievements) {
+      updatedPlayer = { ...updatedPlayer, achievements: updatedAchievements };
+      playerStorage.write(updatedPlayer);
+    }
+
+    // Check for newly unlocked titles
+    const newTitles = getNewTitles(updatedPlayer);
+    if (newTitles.length > 0) {
+      updatedPlayer = applyNewTitles(updatedPlayer, newTitles);
+      playerStorage.write(updatedPlayer);
+      for (const t of newTitles) print(renderTitleUnlocked(t.name));
+    }
+
+    // Check for newly summoned shadows
+    const newShadows = getNewShadows(updatedPlayer);
+    if (newShadows.length > 0) {
+      updatedPlayer = applyNewShadows(updatedPlayer, newShadows);
+      playerStorage.write(updatedPlayer);
+      for (const s of newShadows) {
+        const def = (await import("../shadows/definitions.js")).SHADOW_DEFINITIONS
+          .find((d) => d.signalKey === s.signalKey);
+        print(renderShadowSummoned(s.name, def?.flavour ?? "A shadow rises from the abyss."));
+      }
+    }
+
     // Update quest progress
     const { completed } = updateQuestProgress(dungeonStorage, event);
     for (const q of completed) {
       print(renderQuestComplete(q.title, q.xpReward));
-      // Award quest XP
-      const questEvent = {
-        type: "git-commit" as const, // proxy event to carry XP — use git-commit base
-        occurredAt: new Date().toISOString(),
-        metadata: { questReward: q.xpReward, questId: q.questId },
-      };
-      // Directly add XP without going through the bus (quest rewards bypass rate limits)
+      // Award quest XP directly (bypass rate limits)
       const questPlayer = playerStorage.read();
       if (questPlayer !== null) {
         playerStorage.write({
@@ -99,7 +126,6 @@ async function main(): Promise<void> {
           rankXp: questPlayer.rankXp + q.xpReward,
         });
       }
-      void questEvent; // questEvent computed but XP applied directly above
     }
 
     // Regular XP line
@@ -107,20 +133,20 @@ async function main(): Promise<void> {
       renderXpLine(
         result.xpAwarded,
         event.type,
-        result.updatedPlayer.rankXp,
-        result.updatedPlayer.xpToNextRank,
-        result.updatedPlayer.rank,
+        updatedPlayer.rankXp,
+        updatedPlayer.xpToNextRank,
+        updatedPlayer.rank,
       ),
     );
 
     // Rank-up banner
     if (result.rankUp !== null) {
-      print(renderRankUp(result.rankUp.from, result.rankUp.to, result.updatedPlayer));
+      print(renderRankUp(result.rankUp.from, result.rankUp.to, updatedPlayer));
     }
 
     // Class change notification
     if (result.classChanged) {
-      print(renderClassChange(result.updatedPlayer.hunterClass));
+      print(renderClassChange(updatedPlayer.hunterClass));
     }
   } finally {
     dungeonStorage.close();

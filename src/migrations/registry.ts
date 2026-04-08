@@ -24,6 +24,17 @@ export const PLAYER_MIGRATIONS: Migration[] = [
       lastActiveDateStr: "",
     }),
   },
+  {
+    // Phase 5 — adds achievement counters and shadow army
+    fromVersion: "1.1.0",
+    toVersion:   "1.2.0",
+    up: (state: RawState): RawState => ({
+      ...state,
+      schemaVersion: "1.2.0",
+      achievements:  { filesCreated: 0, bugsFixed: 0, cleanSessions: 0 },
+      shadowArmy:    [],
+    }),
+  },
 ];
 
 export const DUNGEON_MIGRATIONS: Migration[] = [
@@ -43,5 +54,11 @@ export const DUNGEON_MIGRATIONS: Migration[] = [
         })),
       };
     },
+  },
+  {
+    // Phase 5 — no dungeon changes; version bump to stay in sync with player
+    fromVersion: "1.1.0",
+    toVersion:   "1.2.0",
+    up: (state: RawState): RawState => ({ ...state, schemaVersion: "1.2.0" }),
   },
 ];

@@ -15,6 +15,7 @@ import { openDungeonStorage, openPlayerStorage } from "./storage/index.js";
 import { Dashboard } from "./ui/Dashboard.js";
 import { QuestsView } from "./ui/QuestsView.js";
 import { LogView } from "./ui/LogView.js";
+import { AchievementsView } from "./ui/AchievementsView.js";
 
 const program = new Command();
 
@@ -91,6 +92,25 @@ program
         sessions:    dungeon?.sessions ?? [],
         hunterName:  player.name,
       }),
+    );
+    await waitUntilExit();
+  });
+
+// ---------------------------------------------------------------------------
+// achievements
+// ---------------------------------------------------------------------------
+
+program
+  .command("achievements")
+  .alias("a")
+  .description("Show titles, shadow army, and achievement counters")
+  .action(async () => {
+    const playerStorage = openPlayerStorage();
+    const player = playerStorage.readOrCreate("Hunter");
+    playerStorage.close();
+
+    const { waitUntilExit } = render(
+      React.createElement(AchievementsView, { player }),
     );
     await waitUntilExit();
   });
