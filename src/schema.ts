@@ -108,6 +108,12 @@ export interface PlayerState {
   /** Active language/framework class — changes as usage patterns shift. */
   hunterClass: HunterClass;
 
+  /**
+   * Accumulated signals used to determine hunterClass.
+   * Updated on every accepted XP event; the classifier re-evaluates after each update.
+   */
+  classSignals: Record<string, number>;
+
   /** All unlocked titles, ordered by unlock time. */
   titles: Title[];
 

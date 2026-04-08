@@ -232,3 +232,72 @@ describe("asHandler", () => {
     expect(playerStorage.read()?.totalXp).toBe(EVENT_AWARDS["git-commit"].baseXp);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Class system integration
+// ---------------------------------------------------------------------------
+
+describe("handle — class signals", () => {
+  it("accumulates class signals from file-edit with filePath metadata", () => {
+    engine.handle(makeEvent("file-edit", { filePath: "src/index.ts" }));
+    expect(playerStorage.read()?.classSignals["tsEdits"]).toBe(1);
+  });
+
+  it("accumulates multiple signal types across events", () => {
+    engine.handle(makeEvent("file-edit", { filePath: "src/foo.ts" }));
+    engine.handle(makeEvent("git-commit"));
+    engine.handle(makeEvent("test-pass"));
+
+    const signals = playerStorage.read()?.classSignals ?? {};
+    expect(signals["tsEdits"]).toBe(1);
+    expect(signals["commits"]).toBe(1);
+    expect(signals["testRuns"]).toBe(1);
+    expect(signals["testPasses"]).toBe(1);
+  });
+
+  it("starts Unclassed and stays Unclassed below the signal threshold", () => {
+    engine.handle(makeEvent("file-edit", { filePath: "src/foo.ts" }));
+    expect(playerStorage.read()?.hunterClass).toBe("Unclassed");
+  });
+
+  it("sets classChanged=false when class does not change", () => {
+    const { classChanged } = engine.handle(makeEvent("git-commit"));
+    expect(classChanged).toBe(false);
+  });
+
+  it("classifies the Hunter once enough TypeScript signals accumulate", () => {
+    const player = playerStorage.readOrCreate("Hunter");
+    // Pre-seed signals just below the threshold with TS dominance
+    playerStorage.write({
+      ...player,
+      classSignals: { _padding: 49, tsEdits: 30, buildPasses: 10 },
+    });
+
+    const { classChanged, updatedPlayer } = engine.handle(
+      makeEvent("file-edit", { filePath: "src/app.ts" }),
+    );
+
+    expect(classChanged).toBe(true);
+    expect(updatedPlayer.hunterClass).toBe("Architect");
+  });
+
+  it("applies the class bonus to XP once a class is active", () => {
+    const player = playerStorage.readOrCreate("Hunter");
+    // Pre-seed as Architect with enough signals
+    playerStorage.write({
+      ...player,
+      hunterClass: "Architect",
+      classSignals: { _padding: 50, tsEdits: 30, buildPasses: 10 },
+    });
+
+    const { xpAwarded } = engine.handle(makeEvent("build-pass"));
+    const baseXp = EVENT_AWARDS["build-pass"].baseXp;
+    // Architect bonus on build-pass is 1.2
+    expect(xpAwarded).toBe(Math.round(baseXp * 1.2));
+  });
+
+  it("applies no class bonus for Unclassed hunters", () => {
+    const { xpAwarded } = engine.handle(makeEvent("build-pass"));
+    expect(xpAwarded).toBe(EVENT_AWARDS["build-pass"].baseXp);
+  });
+});

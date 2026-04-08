@@ -3,11 +3,12 @@
  *
  * Registered as a handler on the EventBus. On each accepted event it:
  *   1. Loads the current PlayerState
- *   2. Computes the XP award (base × metadata multiplier)
+ *   2. Computes the XP award (base × metadata multiplier × class bonus)
  *   3. Applies stat deltas
- *   4. Checks for rank-up (carrying over excess XP)
- *   5. Persists the updated state
- *   6. Returns a ProcessResult describing what happened
+ *   4. Updates class signals and re-evaluates the Hunter's class
+ *   5. Checks for rank-up (carrying over excess XP)
+ *   6. Persists the updated state
+ *   7. Returns a ProcessResult describing what happened
  *
  * The engine never touches the EventBus — that separation is intentional.
  * Hook code calls bus.process(); the bus calls engine.handle(); the engine
@@ -17,6 +18,7 @@
 import type { PlayerStorage } from "../storage/index.js";
 import type { HunterStats, PlayerState, Rank } from "../schema.js";
 import type { XPEvent } from "../events/types.js";
+import { classifyHunter, extractSignals, getClassBonus, mergeSignals } from "../classes/index.js";
 import { EVENT_AWARDS } from "./awards.js";
 import { isMaxRank, nextRank, xpToNextRankFor } from "./ranks.js";
 
@@ -32,6 +34,8 @@ export interface RankUpEvent {
 export interface ProcessResult {
   xpAwarded: number;
   rankUp: RankUpEvent | null;
+  /** Set if the Hunter's class changed as a result of this event. */
+  classChanged: boolean;
   /** Player state after this event was applied. */
   updatedPlayer: PlayerState;
 }
@@ -51,10 +55,15 @@ export class XPEngine {
     const player = this.playerStorage.readOrCreate("Hunter");
     const award = EVENT_AWARDS[event.type];
 
-    const multiplier = award.multiplier?.(event.metadata) ?? 1.0;
-    const xpAwarded = Math.max(0, Math.round(award.baseXp * multiplier));
+    const eventMultiplier = award.multiplier?.(event.metadata) ?? 1.0;
+    const classBonus = getClassBonus(player.hunterClass, event.type);
+    const xpAwarded = Math.max(0, Math.round(award.baseXp * eventMultiplier * classBonus));
 
     const updatedStats = applyStatDeltas(player.stats, award.statDeltas);
+
+    const updatedSignals = mergeSignals(player.classSignals, extractSignals(event));
+    const newClass = classifyHunter(updatedSignals);
+    const classChanged = newClass !== player.hunterClass;
 
     const { rank, rankXp, xpToNextRank, rankUp } = applyXp(
       player.rank,
@@ -70,12 +79,14 @@ export class XPEngine {
       xpToNextRank,
       totalXp: player.totalXp + xpAwarded,
       stats: updatedStats,
+      classSignals: updatedSignals,
+      hunterClass: newClass,
       lastActiveAt: event.occurredAt,
     };
 
     this.playerStorage.write(updatedPlayer);
 
-    return { xpAwarded, rankUp, updatedPlayer };
+    return { xpAwarded, rankUp, classChanged, updatedPlayer };
   }
 
   /**

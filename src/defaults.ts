@@ -31,6 +31,7 @@ export function createPlayer(name: string): PlayerState {
     xpToNextRank: 1000, // E → D threshold; will be managed by the XP engine
     stats: emptyStats(),
     hunterClass: "Unclassed",
+    classSignals: {},
     titles: [],
     activeTitle: null,
     createdAt: now,
