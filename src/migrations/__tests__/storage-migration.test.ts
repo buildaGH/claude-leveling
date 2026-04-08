@@ -63,7 +63,7 @@ describe("PlayerStorage migration on read", () => {
     db.close();
 
     const storage = openPlayerStorage(dbPath);
-    const state = storage.read() as Record<string, unknown>;
+    const state = storage.read() as unknown as Record<string, unknown>;
     expect(state?.["schemaVersion"]).toBe(CURRENT_SCHEMA_VERSION);
     expect(state?.["migratedFlag"]).toBe(true);
     expect(state?.["name"]).toBe("OldHunter");
@@ -111,7 +111,7 @@ describe("DungeonStorage migration on read", () => {
     db.close();
 
     const storage = openDungeonStorage(dir);
-    const state = storage.read() as Record<string, unknown>;
+    const state = storage.read() as unknown as Record<string, unknown>;
     expect(state?.["schemaVersion"]).toBe(CURRENT_SCHEMA_VERSION);
     expect(state?.["dungeonMigrated"]).toBe(true);
     storage.close();

@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node dist/hooks/post-tool-use.js"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node dist/hooks/stop.js"
+          }
+        ]
+      }
+    ]
+  }
+}

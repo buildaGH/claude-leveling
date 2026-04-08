@@ -45,6 +45,8 @@ export const EVENT_AWARDS: Record<XPEventType, EventAward> = {
     baseXp: 50,
     statDeltas: { strength: 2, agility: 2 },
     multiplier(metadata) {
+      // fixup! / squash! commits are mechanical — penalise slightly.
+      if (metadata["fixup"] === true) return 0.5;
       // Longer commit messages signal more considered work.
       const msg = metadata["commitMessage"];
       if (typeof msg !== "string" || msg.length === 0) return 1.0;
