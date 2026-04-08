@@ -11,6 +11,7 @@
     "exactOptionalPropertyTypes": true,
     "skipLibCheck": true,
     "types": ["node"],
+    "jsx": "react-jsx",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true

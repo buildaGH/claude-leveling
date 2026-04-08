@@ -30,10 +30,14 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.5.2",
+    "@types/react": "^19.2.14",
     "typescript": "^6.0.2",
     "vitest": "^4.1.2"
   },
   "dependencies": {
-    "better-sqlite3": "^12.8.0"
+    "better-sqlite3": "^12.8.0",
+    "commander": "^14.0.3",
+    "ink": "^7.0.0",
+    "react": "^19.2.5"
   }
 }
