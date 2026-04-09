@@ -5,7 +5,7 @@ import { createPlayer } from "../../defaults.js";
 import { createDungeon } from "../../defaults.js";
 
 function makePlayer(overrides: Partial<PlayerState> = {}): PlayerState {
-  return { ...createPlayer("Hunter", "claude-leveling"), ...overrides };
+  return { ...createPlayer("Hunter"), ...overrides };
 }
 
 function makeDungeon(rateLimitState: Record<string, string> = {}): DungeonState {

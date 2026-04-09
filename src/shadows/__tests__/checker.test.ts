@@ -4,7 +4,7 @@ import { createPlayer } from "../../defaults.js";
 import type { PlayerState } from "../../schema.js";
 
 function makePlayer(overrides: Partial<PlayerState> = {}): PlayerState {
-  return { ...createPlayer("Hunter", "claude-leveling"), ...overrides };
+  return { ...createPlayer("Hunter"), ...overrides };
 }
 
 describe("getNewShadows", () => {

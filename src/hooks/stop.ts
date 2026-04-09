@@ -12,11 +12,24 @@ import { openDungeonStorage, openPlayerStorage } from "../storage/index.js";
 import { EventBus } from "../events/index.js";
 import { XPEngine } from "../xp/index.js";
 import { endSession } from "./session.js";
-import { renderRankUp, renderSessionEnd, renderShadowSummoned, renderStreakMilestone, renderTitleUnlocked } from "./notify.js";
+import {
+  renderNarration,
+  renderRankUp,
+  renderSessionEnd,
+  renderShadowSummoned,
+  renderStreakMilestone,
+  renderTitleUnlocked,
+} from "./notify.js";
 import { updateStreak } from "../quests/index.js";
 import { checkCleanSession, getNewTitles, applyNewTitles } from "../titles/index.js";
 import { getNewShadows, applyNewShadows } from "../shadows/index.js";
 import { SHADOW_DEFINITIONS } from "../shadows/definitions.js";
+import {
+  narrateRankUp,
+  narrateSessionEnd,
+  narrateShadowSummon,
+  narrateTitleUnlock,
+} from "../narration/index.js";
 import { print, readStdin } from "./io.js";
 import type { StopPayload } from "./types.js";
 
@@ -68,7 +81,11 @@ async function main(): Promise<void> {
       if (newTitles.length > 0) {
         updatedPlayer = applyNewTitles(updatedPlayer, newTitles);
         playerStorage.write(updatedPlayer);
-        for (const t of newTitles) print(renderTitleUnlocked(t.name));
+        for (const t of newTitles) {
+          print(renderTitleUnlocked(t.name));
+          const narration = await narrateTitleUnlock(t.name, updatedPlayer.rank, updatedPlayer.hunterClass);
+          print(renderNarration(narration));
+        }
       }
 
       // Check for newly summoned shadows
@@ -79,16 +96,33 @@ async function main(): Promise<void> {
         for (const s of newShadows) {
           const def = SHADOW_DEFINITIONS.find((d) => d.signalKey === s.signalKey);
           print(renderShadowSummoned(s.name, def?.flavour ?? "A shadow rises from the abyss."));
+          const narration = await narrateShadowSummon(s.name, s.editCount);
+          print(renderNarration(narration));
         }
       }
 
       print(renderSessionEnd(endResult, updatedPlayer));
+      const sessionNarration = await narrateSessionEnd(
+        endResult.sessionMinutes,
+        updatedPlayer.rank,
+        endResult.outcome === "cleared",
+        updatedPlayer.hunterClass,
+      );
+      print(renderNarration(sessionNarration));
+
       if (streakResult.isNewDay && streakResult.streak >= 3) {
         print(renderStreakMilestone(streakResult.streak));
       }
 
       if (result.rankUp !== null) {
         print(renderRankUp(result.rankUp.from, result.rankUp.to, updatedPlayer));
+        const rankNarration = await narrateRankUp(
+          result.rankUp.from,
+          result.rankUp.to,
+          updatedPlayer.hunterClass,
+          updatedPlayer.totalXp,
+        );
+        print(renderNarration(rankNarration));
       }
     } else {
       // Bus rejected (shouldn't happen for session-end, but be safe)

@@ -196,3 +196,27 @@ export function renderShadowSummoned(shadowName: string, flavour: string): strin
     flavour,
   ]);
 }
+
+// ---------------------------------------------------------------------------
+// Narration — "The System speaks"
+// ---------------------------------------------------------------------------
+
+export function renderNarration(text: string): string {
+  // Wrap long lines to fit within WIDTH
+  const maxLen = WIDTH - 4; // "  " prefix + "  " suffix
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const candidate = current.length === 0 ? word : `${current} ${word}`;
+    if (candidate.length > maxLen && current.length > 0) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current.length > 0) lines.push(current);
+
+  return box(["[ THE SYSTEM SPEAKS ]", "", ...lines.map((l) => `  ${l}`)]);
+}

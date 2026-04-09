@@ -16,6 +16,8 @@ import { Dashboard } from "./ui/Dashboard.js";
 import { QuestsView } from "./ui/QuestsView.js";
 import { LogView } from "./ui/LogView.js";
 import { AchievementsView } from "./ui/AchievementsView.js";
+import { narrateSessionStart, narrateSessionEnd, narrateRankUp } from "./narration/index.js";
+import { renderNarration } from "./hooks/notify.js";
 
 const program = new Command();
 
@@ -113,6 +115,45 @@ program
       React.createElement(AchievementsView, { player }),
     );
     await waitUntilExit();
+  });
+
+// ---------------------------------------------------------------------------
+// narrate — "The System speaks" on demand
+// ---------------------------------------------------------------------------
+
+program
+  .command("narrate")
+  .alias("n")
+  .description("Ask the System to narrate your current session (requires ANTHROPIC_API_KEY)")
+  .action(async () => {
+    const playerStorage  = openPlayerStorage();
+    const dungeonStorage = openDungeonStorage();
+
+    const player  = playerStorage.readOrCreate("Hunter");
+    const dungeon = dungeonStorage.read();
+
+    playerStorage.close();
+    dungeonStorage.close();
+
+    const projectName = process.cwd().split("/").pop() ?? "unknown";
+    const recentSession = (dungeon?.sessions ?? [])
+      .filter((s) => s.outcome === "in-progress" || s.outcome === "cleared")
+      .sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
+
+    if (recentSession?.outcome === "in-progress") {
+      const text = await narrateSessionStart(projectName, player.rank, player.streak);
+      process.stdout.write(renderNarration(text) + "\n");
+    } else if (recentSession?.outcome === "cleared") {
+      const minutes = recentSession.endedAt
+        ? Math.round((new Date(recentSession.endedAt).getTime() - new Date(recentSession.startedAt).getTime()) / 60_000)
+        : 0;
+      const text = await narrateSessionEnd(minutes, player.rank, true, player.hunterClass);
+      process.stdout.write(renderNarration(text) + "\n");
+    } else {
+      // No recent session — narrate the rank as a general status message
+      const text = await narrateRankUp("E", player.rank, player.hunterClass, player.totalXp);
+      process.stdout.write(renderNarration(text) + "\n");
+    }
   });
 
 program.parse();
