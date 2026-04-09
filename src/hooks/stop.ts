@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * stop.ts — Stop hook entry point.
  *

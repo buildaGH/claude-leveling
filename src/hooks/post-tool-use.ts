@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * post-tool-use.ts — PostToolUse hook entry point.
  *

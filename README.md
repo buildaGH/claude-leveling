@@ -6,25 +6,92 @@ A Solo Leveling-style RPG gamification layer for [Claude Code](https://claude.ai
 
 ---
 
-## What is this?
+## Installation
 
-Claude Leveling hooks into Claude Code's event system to turn your everyday development work into an RPG progression loop — inspired by the manhwa *Solo Leveling*.
+```bash
+npm install -g claude-leveling
+claude-level init
+```
 
-Every tool use, commit, test run, and bug fix is tracked. XP is awarded. Your Hunter grows stronger. Rank up from **E** all the way to **National-Level Programmer**.
+`init` will ask for your Hunter name and offer to configure Claude Code hooks in the current project. Run it once globally, then once per project you want to track.
+
+> **Note:** The package requires Node ≥ 20.
 
 ---
 
 ## How it works
 
-Claude Code fires hook events as you work — file edits, bash commands, test runs, and more. Claude Leveling listens to these events and:
+Claude Code fires hook events as you work — file edits, bash commands, test runs, and more. Claude Leveling listens and:
 
 1. Awards XP based on what you did and how well you did it
 2. Updates your five core stats
 3. Tracks active daily and weekly quests
-4. Fires rank-up ceremonies when thresholds are hit
-5. Narrates it all in Solo Leveling prose
+4. Fires rank-up and class-change ceremonies
+5. Summons shadows and unlocks titles as you hit milestones
+6. Narrates it all in Solo Leveling prose (optionally via the Claude API)
 
-Your **Hunter** is global — rank and XP follow you across every project. Each **project** is its own dungeon, with its own cleared status and session history.
+Your **Hunter** is global — rank, XP, and shadow army follow you across every project. Each **project** is its own dungeon with its own cleared status, session history, and quest board.
+
+---
+
+## Quick start
+
+### 1. Install and initialise
+
+```bash
+npm install -g claude-leveling
+claude-level init
+```
+
+### 2. Per-project setup
+
+Run `init` inside any project you want tracked:
+
+```bash
+cd my-project
+claude-level init
+```
+
+This writes the hook entries to `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|Agent",
+        "hooks": [{ "type": "command", "command": "claude-level-post-tool-use" }]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [{ "type": "command", "command": "claude-level-stop" }]
+      }
+    ]
+  }
+}
+```
+
+### 3. Optional: AI narration
+
+Set `ANTHROPIC_API_KEY` in your shell config to enable the Claude API narration layer. The system works fully without it — static Solo Leveling prose is always the fallback.
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+---
+
+## CLI
+
+| Command | Alias | Description |
+|---|---|---|
+| `claude-level init` | `i` | First-time setup wizard |
+| `claude-level status` | `s` | Open the TUI dashboard |
+| `claude-level quests` | `q` | Show active and completed quests |
+| `claude-level log` | `l` | Session history |
+| `claude-level achievements` | `a` | Titles, shadow army, achievement counters |
+| `claude-level narrate` | `n` | Ask the System to narrate your session |
 
 ---
 
@@ -36,7 +103,7 @@ Your **Hunter** is global — rank and XP follow you across every project. Each 
 | `Agility` | Commit frequency and files touched per session |
 | `Endurance` | Total active coding time |
 | `Sense` | Bugs caught — failed tests turned green, fix commits |
-| `Strength` | Feature scale — lines added, new files, PRs merged |
+| `Strength` | Feature scale — lines added, new files created |
 
 ---
 
@@ -46,89 +113,127 @@ Your **Hunter** is global — rank and XP follow you across every project. Each 
 E → D → C → B → A → S → National-Level Programmer
 ```
 
-Rank is global. Your class is separate.
+Rank is global and persists across every project. XP from every session accumulates toward the next threshold.
 
-Sustained use of specific languages and patterns unlocks a **class** — a passive specialisation that gives XP bonuses and flavour without gating progression.
+---
+
+## Hunter Classes
+
+Sustained use of specific languages and patterns unlocks a **class** — a passive specialisation that grants XP bonuses and flavour without gating rank progression.
 
 | Class | Unlocks from |
 |---|---|
 | `Architect` | Heavy TypeScript / typed language usage |
 | `Shadow Scout` | Heavy bash, infra, and scripting work |
-| `Assassin` | Heavy test writing and coverage work |
+| `Assassin` | Heavy test writing and TDD patterns |
+| `Berserker` | High commit velocity and large diffs |
+| `Sage` | Long commit messages and heavy documentation |
+| `Necromancer` | Frequently rescuing failing tests and reverts |
+| `Unclassed` | Not enough signal yet |
+
+Classes reclassify dynamically as your usage patterns shift.
 
 ---
 
 ## Quest System
 
-Three daily quests reset at midnight. Weekly quests hit harder and reward more.
+Three daily quests reset at midnight. Weekly quests hit harder and reward more. Quests are generated per-project and tracked in the dungeon state.
 
-Example archetypes:
+### Archetypes
 
-- **Dungeon Raid** — *"Commit 5 times today"*
-- **Hunt the Weak** — *"Write 10 passing tests"*
-- **Speed Clear** — *"Fix a bug within 30 minutes"*
-- **Endurance Trial** — *"Work for 2 hours straight"*
-- **Gate Siege** — *"Deliver a full feature end-to-end with Claude Code"*
+| Archetype | Example |
+|---|---|
+| **Dungeon Raid** | *"Commit 5 times today"* |
+| **Hunt the Weak** | *"Pass 10 tests this session"* |
+| **Speed Clear** | *"Fix a bug within 30 minutes"* |
+| **Endurance Trial** | *"Work for 2 hours straight"* |
+| **Gate Siege** | *"Deliver a full feature end-to-end"* |
+| **Bonus Gate** | Spawns randomly at session start (10% chance) |
 
-Bonus quests trigger randomly during a session:
+### Streaks
 
-> *"A Gate has appeared. A hidden dungeon has been detected in this repository."*
+Consecutive active days compound your session-end XP:
+
+| Streak | Multiplier |
+|---|---|
+| 3 days | ×1.1 |
+| 7 days | ×1.2 |
+| 14 days | ×1.3 |
 
 ---
 
 ## Titles
 
-Achievements unlock equippable titles displayed on your Hunter card.
+Achievements unlock equippable titles shown on your Hunter card.
 
 | Title | Condition |
 |---|---|
-| `"The Gamer"` | First rank up |
-| `"Bug Slayer"` | Fix 50 bugs |
-| `"Architect of Shadows"` | Create 100 files |
-| `"Monarch"` | Reach S Rank |
-| `"Solo Developer"` | Complete a feature with no failed attempts |
+| `「First Blood」` | Earn any XP |
+| `「The Gamer」` | First rank up |
+| `「On a Roll」` | 7-day streak |
+| `「Solo Developer」` | Complete a clean session (commit + tests passing, zero failures) |
+| `「Bug Slayer」` | Fix 50 bugs |
+| `「Architect of Shadows」` | Create 100 files |
+| `「Shadow Sovereign」` | Summon 5 shadows |
+| `「Monarch」` | Reach S Rank |
 
 ---
 
 ## Shadow Army
 
-Technologies and patterns you've mastered are conscripted into your Shadow Army — detected from file types, packages used, and sustained activity.
+Technologies and patterns you've mastered are conscripted into your Shadow Army. Each shadow is summoned the first time a class signal crosses its threshold.
 
-> *"Shadow `TypeScript` has been added to your army."*
+| Shadow | Signal | Threshold |
+|---|---|---|
+| TypeScript | `.ts` / `.tsx` edits | 50 |
+| JavaScript | `.js` / `.jsx` edits | 50 |
+| Python | `.py` edits | 50 |
+| Rust | `.rs` edits | 30 |
+| Go | `.go` edits | 30 |
+| Shell | Bash commands | 100 |
+| The Tester | Test passes | 30 |
+| The Committer | Git commits | 50 |
+| The Summoner | Agent spawns | 10 |
 
 ---
 
-## CLI
+## XP Anti-farming
 
-```bash
-claude-level status    # Open the TUI dashboard
-claude-level quests    # View active quests
-claude-level log       # XP history
-claude-level init      # First-time setup wizard
-```
+The system rates-limits rapid events to prevent farming. Each event type has a cooldown window. Sessions also have per-rank XP caps — but quality checkpoints (commits, test passes, builds, lint passes) always bypass the cap.
 
 ---
 
-## Installation
+## AI Narration
 
-> Not yet published. Come back soon.
+When `ANTHROPIC_API_KEY` is set, the System narrates key moments using the Claude API (`claude-haiku-4-5-20251001` — fast and cheap). If the API is unavailable or times out (5s limit), static templates are used transparently.
+
+Narrated events:
+- Session start
+- Quest complete
+- Title unlock
+- Shadow summon
+- Rank-up
+- Session end
+
+You can also invoke narration on demand:
 
 ```bash
-npm install -g claude-leveling
-claude-level init
+claude-level narrate
 ```
-
-Then add the hooks to your `.claude/settings.json` — `claude-level init` handles this for you.
 
 ---
 
 ## Data & Storage
 
-| Location | What's stored |
+| Location | Contents |
 |---|---|
-| `~/.claude-level/player.json` | Global Hunter — rank, XP, stats, titles, class, shadow army |
-| `~/.claude-level/config.json` | User preferences |
-| `.claude-level/dungeon.json` | Per-project dungeon state and session history |
+| `~/.claude-level/player.db` | Global Hunter — rank, XP, stats, titles, class, shadow army |
+| `~/.claude-level/config.json` | User preferences (hunter name, narration toggle) |
+| `.claude-level/dungeon.db` | Per-project dungeon — sessions, quests, rate-limit state |
+
+All storage uses SQLite via `better-sqlite3` in WAL mode for safe concurrent writes from hook processes.
+
+Schema migrations run automatically on read — old data is never lost.
 
 ---
 
@@ -136,14 +241,14 @@ Then add the hooks to your `.claude/settings.json` — `claude-level init` handl
 
 | Phase | Name | Status |
 |---|---|---|
-| 1 | **System Core** — schema, XP engine, stat engine, class system | 🔨 In progress |
-| 2 | **Claude Code Hooks** — live event integration, quality checkpoints | Planned |
-| 3 | **Quest System** — daily/weekly/bonus quests, streaks | Planned |
-| 4 | **TUI Dashboard** — rank card, stat bars, XP sparkline, quest panel | Planned |
-| 5 | **Titles & Shadow Army** — achievements and mastery tracking | Planned |
-| 6 | **Claude API Integration** — AI-generated flavour text and narration | Planned |
-| 7 | **Distribution** — `npm install -g`, setup wizard, full docs | Planned |
-| 8 | **Guilds** *(stretch)* — team leaderboards scoped to GitHub orgs | Stretch |
+| 1 | **System Core** — schema, XP engine, stats, class system | ✅ Done |
+| 2 | **Claude Code Hooks** — live event integration, quality checkpoints | ✅ Done |
+| 3 | **Quest System** — daily/weekly/bonus quests, streaks | ✅ Done |
+| 4 | **TUI Dashboard** — rank card, stat bars, XP sparkline, quest panel | ✅ Done |
+| 5 | **Titles & Shadow Army** — achievements and mastery tracking | ✅ Done |
+| 6 | **Claude API Integration** — AI-generated flavour text and narration | ✅ Done |
+| 7 | **Distribution** — `npm install -g`, setup wizard, full docs | ✅ Done |
+| 8 | **Guilds** *(stretch)* — team leaderboards scoped to GitHub orgs | Planned |
 
 ---
 
