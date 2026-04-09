@@ -4,6 +4,11 @@
   "description": "Solo Leveling-style RPG gamification system for Claude Code",
   "type": "module",
   "main": "dist/index.js",
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
   "bin": {
     "claude-level":               "dist/cli.js",
     "claude-level-post-tool-use": "dist/hooks/post-tool-use.js",
@@ -11,6 +16,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "prepare": "npm run build",
     "dev": "tsc --watch",
     "start": "node dist/cli.js",
     "typecheck": "tsc --noEmit",
@@ -37,7 +43,6 @@
     "vitest": "^4.1.2"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.86.1",
     "better-sqlite3": "^12.8.0",
     "commander": "^14.0.3",
     "ink": "^7.0.0",
